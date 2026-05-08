@@ -15,18 +15,22 @@ skills.sh is GitHub-backed, not npm-backed. To publish a skill:
 
 There is no submission form, approval queue, or registry tarball. Push to GitHub, run the install once, you're listed.
 
-## Decision: dedicated repo vs mono-repo
+## Decision: dedicated repo vs mono-repo — default to mono-repo
 
-| | Dedicated repo (`<user>/<skill-name>`) | Mono-repo (`<user>/skills`) |
+| | Dedicated repo (`<user>/<skill-name>`) | Mono-repo (`<user>/skills`) ← **default** |
 |---|---|---|
 | **Structure** | `SKILL.md` at root | `skills/<name>/SKILL.md` per skill |
 | **Install command** | `npx skills add <user>/<skill-name>` | `npx skills add <user>/skills` (installs all) or `--skill <name>` (one) |
-| **Best when** | You only have one skill, or skills are independent and benefit from their own GitHub home (their own README, issues, stars, badge) | You publish multiple related skills, want them discovered together, willing to share install count across them |
-| **Migration cost** | Hard to merge into mono-repo later (separate repos lose their stars / installs on move) | Easy to split a subfolder out into its own repo if needed |
+| **skill-detail URL on skills.sh** | `/<user>/<skill>/<skill>` ← name doubled in the breadcrumb | `/<user>/skills/<skill>` ← clean |
+| **Adding a second skill later** | Spin up another repo, deal with archive/redirect of the first to migrate | Drop a folder under `skills/`, push, done |
+| **Stars / issues** | Per skill (useful only if a skill develops its own community) | Consolidated on the mono-repo |
+| **Best when** | The skill genuinely needs its own GitHub presence — code repository, complex codebase, third-party PRs | Anyone with more than one skill, or who expects to publish more later |
 
-**Default to dedicated repo for the first skill.** Switch to a mono-repo once you have 3+ skills you want bundled.
+**Default to mono-repo `<user>/skills`.** The dedicated-repo pattern forces the repo name to equal the skill name, which makes the skill-detail URL on skills.sh repeat the name (`/<user>/<skill>/<skill>`) and clutters your GitHub profile if you publish a second skill. The mono-repo gives clean URLs and one canonical home for everything you publish.
 
-## Workflow (dedicated repo, the common case)
+The dedicated-repo flow below is included for the rare case where a skill needs its own GitHub presence — most users should jump to the **mono-repo flow** further down.
+
+## Workflow (dedicated repo — only when you really need a separate GitHub presence)
 
 Assume the skill already exists at `~/.claude/skills/<name>/SKILL.md` and works locally.
 
@@ -153,24 +157,112 @@ Consumers run `npx skills update` (in their project) or `npx skills update -g` (
 
 You typically don't need to bump a version number — there's no semver in skills.sh. Each commit on `main` is the new "version".
 
-## Mono-repo flow (if you have multiple skills)
+## Mono-repo flow (the default — and the right choice for almost everyone)
 
-For 3+ related skills, switch to `<user>/skills`:
+The repo name is literally `skills`. Every skill is a subfolder. The structure scales — first skill, fifth skill, fiftieth skill all use the same layout.
 
 ```
 <user>/skills/
-├── README.md
-├── LICENSE
+├── README.md          ← lists what's inside, install commands, links to each skill
+├── LICENSE            ← MIT
+├── .gitignore         ← node_modules/, *.log, .DS_Store
 └── skills/
     ├── publish-skills-github/SKILL.md
     ├── react-native-latex-math/SKILL.md
     └── npm-publish/SKILL.md
 ```
 
-Install all at once: `npx skills add <user>/skills`.
-Install one: `npx skills add <user>/skills --skill react-native-latex-math`.
+### Setup (first time only)
 
-The leaderboard shows individual skills under the repo namespace (e.g. each appears as a separate row).
+```bash
+GH_USER=$(gh api user --jq .login)
+REPO_DIR="$HOME/code/skills"               # adjust to where you keep code repos
+mkdir -p "$REPO_DIR/skills"
+cd "$REPO_DIR"
+
+# Top-level files
+$EDITOR README.md   # describe the collection — see template below
+$EDITOR LICENSE     # MIT, your name + year
+echo -e "node_modules/\n*.log\n.DS_Store" > .gitignore
+
+# Add the first skill
+SKILL_NAME=<skill-name>
+mkdir -p skills/$SKILL_NAME
+cp ~/.claude/skills/$SKILL_NAME/SKILL.md skills/$SKILL_NAME/SKILL.md
+
+# Init git, create the public repo, push
+git init -b main
+git add -A
+git commit -m "Initial: ${SKILL_NAME}"
+gh repo create skills \
+  --public \
+  --description "Reusable AI agent skills (Claude Code, Cursor, Codex, ...). Install all via 'npx skills add ${GH_USER}/skills' or one via '--skill <name>'." \
+  --source . --remote origin --push
+
+# Register on the leaderboard — install each skill once
+cd /tmp
+npx --yes skills add ${GH_USER}/skills --skill '*' --agent claude-code --global --yes
+```
+
+### Adding a second / Nth skill
+
+```bash
+cd $REPO_DIR
+SKILL_NAME=<new-skill-name>
+mkdir -p skills/$SKILL_NAME
+cp ~/.claude/skills/$SKILL_NAME/SKILL.md skills/$SKILL_NAME/SKILL.md
+# Update README.md to add a row for the new skill
+git add .
+git commit -m "Add skill: $SKILL_NAME"
+git push
+
+# Register the new skill on the leaderboard
+cd /tmp
+npx --yes skills add ${GH_USER}/skills --skill $SKILL_NAME --agent claude-code --global --yes
+```
+
+That's the entire flow for adding skills going forward — drop a folder, push, run one install. No new repos, no new GitHub URLs.
+
+### Top-level README template
+
+```markdown
+# skills
+
+[![skills.sh](https://skills.sh/b/<user>/skills)](https://skills.sh/<user>/skills)
+
+A collection of reusable AI agent skills. Compatible with Claude Code, Cursor, Codex, OpenCode, Windsurf, and any other agent that consumes [skills.sh](https://skills.sh).
+
+## Install all
+\`\`\`bash
+npx skills add <user>/skills
+\`\`\`
+
+## Install one
+\`\`\`bash
+npx skills add <user>/skills --skill <skill-name>
+\`\`\`
+
+## What's in here
+
+| Skill | What it does | Trigger phrases |
+|---|---|---|
+| [\`skill-a\`](./skills/skill-a) | one-line summary | "trigger 1", "trigger 2" |
+| [\`skill-b\`](./skills/skill-b) | one-line summary | "trigger 1", "trigger 2" |
+```
+
+### Migrating from dedicated repos to a mono-repo
+
+If you've already published one or more skills as dedicated repos and want to consolidate (likely because the doubled `/<user>/<skill>/<skill>` URL bothers you, or because publishing the second skill made the redundancy obvious):
+
+1. Create the mono-repo as above with all your existing SKILL.md files moved into `skills/<name>/`.
+2. `npx skills add <user>/skills --skill '*' --agent claude-code --global --yes` — registers each skill.
+3. For each old dedicated repo:
+   - Replace its README with a "moved" notice pointing to the mono-repo install command (so anyone visiting the GitHub page knows where to go)
+   - Push the README change
+   - `gh repo archive <user>/<old-repo> --yes` — marks the repo read-only, signals deprecation, but keeps URLs working so existing `npx skills add <old-repo>` doesn't 404
+4. The old repos' install counts on skills.sh stay frozen at their pre-migration values; new installs accrue on the mono-repo. You don't get to merge the counts.
+
+The leaderboard shows individual skills under the mono-repo namespace (e.g. `react-native-latex-math` appears as a separate row inside the `<user>/skills` listing — clicking lands on `/<user>/skills/<skill>`).
 
 ## Common pitfalls
 
