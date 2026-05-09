@@ -22,6 +22,7 @@ npx skills add amit-biswas-1992/skills --skill <skill-name>
 |---|---|---|
 | [`react-native-latex-math`](./skills/react-native-latex-math) | Render inline LaTeX math (`$...$`) inside React Native / Expo `<Text>` content — single-WebView KaTeX with a fast-path bypass for plain text. Includes the script-ordering bug fix that quietly kills KaTeX rendering. | "math is showing as raw text", "render KaTeX in React Native", "DEVELOPER_ERROR with $...$ in my exam app" |
 | [`publish-skills-github`](./skills/publish-skills-github) | Walks through publishing your own SKILL.md to skills.sh via GitHub — repo creation, non-interactive `npx skills add` registration, leaderboard verification, personal-info pre-flight grep. | "publish my skill", "upload skill to skills.sh", "make this skill discoverable" |
+| [`google-signin-flutter-nestjs-firebase`](./skills/google-signin-flutter-nestjs-firebase) | End-to-end Google Sign-In playbook for Flutter (or Expo) + NestJS-on-Vercel + Firebase + Play Console. Five-points-of-agreement model, full failure-mode → root-cause table, and the literal-`\n` Vercel env-paste trap that costs hours if you don't know to look for it. | "401 Invalid Google idToken", "DEVELOPER_ERROR Google Sign-In", "expiresIn should be a number", "Vercel env didn't take effect" |
 
 Each skill has its own `SKILL.md` with the agent-readable frontmatter (name + description with trigger phrases) and full procedural content.
 
