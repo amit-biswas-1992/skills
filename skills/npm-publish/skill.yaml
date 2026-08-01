@@ -1,0 +1,15 @@
+slug: npm-publish
+name: npm publish
+tagline: Ship a package to npm without getting stuck on 2FA, wrong-directory, or EOTP gotchas.
+version: 0.1.0
+author: amit-biswas-1992
+category: system
+tags:
+  - npm
+  - publish
+  - ci
+  - release
+  - tokens
+license: MIT
+homepage: https://github.com/amit-biswas-1992/bentoskills-registry/tree/main/skills/npm-publish
+publishedAt: 2026-04-18
